@@ -1,0 +1,3 @@
+venv/
+.env.local
+user_speech_log.txt
