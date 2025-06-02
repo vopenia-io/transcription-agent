@@ -11,7 +11,7 @@ async def entrypoint(ctx: JobContext):
     
     await ctx.connect()
     session = AgentSession(
-        turn_detection="stt"
+        turn_detection="manual"
       # room_input_options=RoomInputOptions(
       #   text_enabled=False # disable text input
       # ), 
@@ -29,12 +29,15 @@ async def entrypoint(ctx: JobContext):
 
     await session.start(
         agent=Agent(
+            turn_detection="manual",
             instructions="You are a helpful assistant that transcribes user speech to text.",
+            llm=None,
             stt=gladia.STT(
                 languages=["nl", "fr", "en", "de"],
                 translation_enabled=True,
                 interim_results=True,
-                translation_target_languages=["fr"]
+                translation_target_languages=["fr"],
+                energy_filter=False
             )
         ),
         room=ctx.room
