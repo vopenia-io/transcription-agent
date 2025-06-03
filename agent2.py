@@ -22,8 +22,7 @@ async def entrypoint(ctx: agents.JobContext):
       translation_target_languages=["fr", "en"],
       energy_filter=False
     )
-    stt_stream = stt_impl.stream()
-
+  
     room = ctx.room
     
     @ctx.room.on("track_subscribed")
@@ -32,7 +31,8 @@ async def entrypoint(ctx: agents.JobContext):
         asyncio.create_task(process_track(track, participant))
 
     async def process_track(track: rtc.RemoteTrack, participant: rtc.RemoteParticipant):
-
+        
+        stt_stream = stt_impl.stream()
         audio_stream = rtc.AudioStream(track)
 
         async with asyncio.TaskGroup() as tg:
