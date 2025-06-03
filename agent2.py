@@ -19,7 +19,7 @@ async def entrypoint(ctx: agents.JobContext):
       languages=["fr"],
       translation_enabled=True,
       interim_results=False,
-      translation_target_languages=["fr", "en"],
+      translation_target_languages=["fr", "en", "de", "nl"],
       energy_filter=False
     )
   
@@ -28,7 +28,8 @@ async def entrypoint(ctx: agents.JobContext):
     @ctx.room.on("track_subscribed")
     def on_track_subscribed(track: rtc.RemoteTrack, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
         print(f"Subscribed to track: {track.name}")
-        asyncio.create_task(process_track(track, participant))
+        if (room.local_participant.identity != participant.identity):
+          asyncio.create_task(process_track(track, participant))
 
     async def process_track(track: rtc.RemoteTrack, participant: rtc.RemoteParticipant):
         
@@ -71,6 +72,7 @@ async def entrypoint(ctx: agents.JobContext):
                           "lk.segment_id": str(uuid.uuid4()),
                           "lk.transcribed_track_id": track.sid,
                           "lk.transcribed_participant_id": participant.identity,
+                          "lk.transcribed_participant_name": participant.name,
                           "lk.language": event.alternatives[0].language
                       },
                       text=event.alternatives[0].text
