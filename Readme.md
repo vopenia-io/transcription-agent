@@ -1,4 +1,4 @@
-# Livekit transciption / traduction agent
+# Livekit transcription / traduction agent
 
 A livekit transcription / traduction agent based on [Gladia](https://www.gladia.io/)
 
