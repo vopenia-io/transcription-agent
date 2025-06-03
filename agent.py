@@ -1,9 +1,13 @@
 from pathlib import Path
+from typing import AsyncIterable
 from dotenv import load_dotenv
 from livekit.agents import JobContext, WorkerOptions, WorkerPermissions, RoomInputOptions, RoomOutputOptions, cli
 from livekit.agents.voice import Agent, AgentSession
+from livekit.agents.stt import SpeechEventType, SpeechEvent
 from livekit.plugins import gladia
+
 import datetime
+
 
 load_dotenv(dotenv_path='.env.local')
 
@@ -11,13 +15,7 @@ async def entrypoint(ctx: JobContext):
     
     await ctx.connect()
     session = AgentSession(
-        turn_detection="manual"
-      # room_input_options=RoomInputOptions(
-      #   text_enabled=False # disable text input
-      # ), 
-      # room_output_options=RoomOutputOptions(
-      #   audio_enabled=False # disable audio output
-      # )
+        turn_detection="manual"   
     )
     
     @session.on("user_input_transcribed")
@@ -25,20 +23,29 @@ async def entrypoint(ctx: JobContext):
         if transcript:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             with open("user_speech_log.txt", "a") as f:
-                f.write(f"[{timestamp}] {transcript.transcript}\n") 
+                f.write(f"[{timestamp}] {transcript}\n") 
 
+    stt_impl = gladia.STT(
+        languages=["nl", "fr", "en", "de"],
+        translation_enabled=True,
+        interim_results=True,
+        translation_target_languages=["fr", "en"],
+        energy_filter=False
+    )
+    
     await session.start(
         agent=Agent(
             turn_detection="manual",
             instructions="You are a helpful assistant that transcribes user speech to text.",
             llm=None,
-            stt=gladia.STT(
-                languages=["nl", "fr", "en", "de"],
-                translation_enabled=True,
-                interim_results=True,
-                translation_target_languages=["fr"],
-                energy_filter=False
-            )
+            stt=stt_impl,
+        ),
+        room_input_options=RoomInputOptions(
+              text_enabled=False # disable text input
+            ), 
+        room_output_options=RoomOutputOptions(
+          audio_enabled=False, # disable audio output
+          transcription_enabled=True
         ),
         room=ctx.room
     )
