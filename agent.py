@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 
 from dotenv import load_dotenv
@@ -9,16 +10,25 @@ from livekit.agents import WorkerOptions, WorkerPermissions, cli
 from livekit.agents.stt import SpeechEventType, SpeechEvent
 from typing import AsyncIterable
 from livekit.plugins import gladia
+from pydantic import BaseModel
 
 load_dotenv(dotenv_path='.env.local')
+
+class Metadata(BaseModel):
+    lang: list[str] = []
 
 async def entrypoint(ctx: agents.JobContext):
     await ctx.connect()
     
+    room = ctx.room
+
     print(f"Connected to room: {room.name} as agent: {room.local_participant.identity}")
     
-    print("metadata:", ctx.job.metadata)
-    langs: list[str] = ctx.job.metadata.get("languages", [])
+    metadata = json.loads(ctx.job.metadata) if ctx.job.metadata else {}
+    meta = Metadata(**metadata)
+    print("metadata:", meta)
+
+    langs: list[str] = meta.lang
     if not langs or len(langs) == 0:
         langs = ["en"]
     if isinstance(langs, str):
@@ -35,9 +45,7 @@ async def entrypoint(ctx: agents.JobContext):
       translation_target_languages=langs,
       energy_filter=False
     )
-  
-    room = ctx.room
-    
+
 
     @ctx.room.on("track_subscribed")
     def on_track_subscribed(track: rtc.RemoteTrack, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
