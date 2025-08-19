@@ -15,16 +15,30 @@ load_dotenv(dotenv_path='.env.local')
 async def entrypoint(ctx: agents.JobContext):
     await ctx.connect()
     
+    print(f"Connected to room: {room.name} as agent: {room.local_participant.identity}")
+    
+    print("metadata:", ctx.job.metadata)
+    langs: list[str] = ctx.job.metadata.get("languages", [])
+    if not langs or len(langs) == 0:
+        langs = ["en"]
+    if isinstance(langs, str):
+        langs = [langs]
+    if not isinstance(langs, list):
+        raise ValueError("Languages must be a list")
+    if not all(isinstance(lang, str) for lang in langs):
+        raise ValueError("All languages must be strings")
+
     stt_impl = gladia.STT(
-      languages=["fr"],
+      languages=None,
       translation_enabled=True,
       interim_results=False,
-      translation_target_languages=["fr", "en", "de", "nl"],
+      translation_target_languages=langs,
       energy_filter=False
     )
   
     room = ctx.room
     
+
     @ctx.room.on("track_subscribed")
     def on_track_subscribed(track: rtc.RemoteTrack, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
         print(f"Subscribed to track: {track.name}")
@@ -32,7 +46,6 @@ async def entrypoint(ctx: agents.JobContext):
           asyncio.create_task(process_track(track, participant))
 
     async def process_track(track: rtc.RemoteTrack, participant: rtc.RemoteParticipant):
-        
         stt_stream = stt_impl.stream()
         audio_stream = rtc.AudioStream(track)
 
@@ -89,7 +102,7 @@ async def entrypoint(ctx: agents.JobContext):
 
 
 if __name__ == "__main__":
-  cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, permissions=WorkerPermissions(
+  cli.run_app(WorkerOptions(agent_name="translation", entrypoint_fnc=entrypoint, permissions=WorkerPermissions(
       can_publish=True,
       can_subscribe=True,
       can_publish_data=True,
